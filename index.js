@@ -4,6 +4,7 @@ const cors = require("cors");
 const port = process.env.PORT || 5000;
 const { MongoClient } = require("mongodb");
 const ObjectId = require('mongodb').ObjectId;
+const Razorpay = require("razorpay");
 require("dotenv").config();
 
 app.use(cors());
@@ -11,6 +12,11 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.islim.mongodb.net/water-kingdom?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const instance = new Razorpay({
+    key_id: `${process.env.RAZOR_PAY_KEY_ID}`,
+    key_secret: `${process.env.RAZOR_PAY_KEY_SECRET}`,
+});
 
 async function run() {
     try {
@@ -167,9 +173,53 @@ async function run() {
             const result = await rideCollection.deleteOne(query)
             res.json(result)
         })
-    }
-    catch {
+        app.get("/order", (req, res) => {
+            try {
+                const options = {
+                    amount: 10 * 100,
+                    currency: "USD",
+                    receipt: "receipt#11",
+                    payment_capture: 0,
+                };
+                instance.orders.create(options, async function (err, order) {
+                    if (err) {
+                        return res.status(500).json({
+                            message: "Something Went Wrong",
+                        });
+                    }
+                    return res.status(200).json(order);
+                });
+            } catch (err) {
+                return res.status(500).json({
+                    message: "Something Went Wrong",
+                });
+            }
+        });
 
+        app.post("/capture/:paymentId", (req, res) => {
+            try {
+                return request(
+                    {
+                        method: "POST",
+                        url: `https://${process.env.RAZOR_PAY_KEY_ID}:${process.env.RAZOR_PAY_KEY_SECRET}@api.razorpay.com/v1/payments/${req.params.paymentId}/capture`,
+                    },
+                    async function (err, response, body) {
+                        if (err) {
+                            return res.status(500).json({
+                                message: "Something Went Wrong",
+                            });
+                        }
+                        return res.status(200).json(body);
+                    }
+                );
+            } catch (err) {
+                return res.status(500).json({
+                    message: "Something Went Wrong",
+                })
+            }
+        })
+    } catch {
+        // await client.close();
     }
 }
 run().catch(console.dir);
