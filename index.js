@@ -22,6 +22,7 @@ async function run() {
         const usersCollection = database.collection('users');
         const eventPackages = database.collection("event-packages");
         const bookingCollection = database.collection("booking-collection");
+        const rideCollection = database.collection("ride-collection");
 
 
         // GET ALL REVIEWS
@@ -57,6 +58,14 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc, options);
             res.json(result);
         });
+        // USER COLLECTION ADDED ADMIN ROLE / UPDATE ROLE FOR ADMIN
+        app.put('/users/admin', async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email }
+            const updateDoc = { $set: { role: 'admin' } }
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.json(result)
+        })
         // ADMIN ROLE FINDER from USERSCOLLECTION
         app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
@@ -105,6 +114,57 @@ async function run() {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = await bookingCollection.deleteOne(query)
+            res.json(result)
+        })
+        // UPDATE SINGLE BOOKING DETAILS API
+        app.patch('/booking/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateBooking = req.body;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    status: updateBooking.status
+                },
+            };
+            const result = await bookingCollection.updateOne(filter, updateDoc, options)
+            res.json(result)
+        })
+        // GET ALL RIDE COLLECTION 
+        app.get("/rides", async (req, res) => {
+            const cursor = rideCollection.find({});
+            const result = await cursor.toArray();
+            res.json(result);
+        })
+        // GET SINGLE RIDE FROM RIDECOLLECTION
+        app.get('/rides/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const ride = await rideCollection.findOne(query);
+            res.json(ride)
+        })
+        // UPDATE SINGLE RIDE DETAILS
+        app.put('/rides/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedRide = req.body;
+            const filter = { _id: ObjectId(id) };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    name: updatedRide.name,
+                    price: updatedRide.price,
+                    img: updatedRide.img,
+                    description: updatedRide.description
+                },
+            };
+            const result = await rideCollection.updateOne(filter, updateDoc, options)
+            res.json(result)
+        })
+        // DELETE SINGLE RIDE DATA
+        app.delete('/rides/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const result = await rideCollection.deleteOne(query)
             res.json(result)
         })
     }
