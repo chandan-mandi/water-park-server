@@ -29,19 +29,7 @@ async function run() {
     const eventPackages = database.collection("event-packages");
     const bookingCollection = database.collection("booking-collection");
     const blogsCollection = database.collection("blogs");
-
-async function run() {
-    try {
-        await client.connect();
-        console.log("database has connected");
-        const database = client.db("water-kingdom");
-        const reviews = database.collection("reviews");
-        const packageBooking = database.collection("package-booking");
-        const usersCollection = database.collection('users');
-        const eventPackages = database.collection("event-packages");
-        const bookingCollection = database.collection("booking-collection");
-        const rideCollection = database.collection("ride-collection");
-
+    const rideCollection = database.collection("ride-collection");
 
     // GET ALL REVIEWS
     app.get("/reviews", async (req, res) => {
@@ -145,26 +133,6 @@ async function run() {
       const result = await bookingCollection.deleteOne(query)
       res.json(result)
     });
-    app.get("/order", (req, res) => {
-      try {
-        const options = {
-          amount: 10 * 100,
-          currency: "USD",
-          receipt: "receipt#11",
-          payment_capture: 0,
-        };
-        instance.orders.create(options, async function (err, order) {
-          if (err) {
-            return res.status(500).json({
-              message: "Something Went Wrong",
-            });
-          }
-          return res.status(200).json(order);
-        });
-      } catch (err) {
-        return res.status(500).json({
-          message: "Something Went Wrong",
-        });
         //update users
         app.put('/users', async (req, res) => {
             const user = req.body;
