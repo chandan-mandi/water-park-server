@@ -6,6 +6,8 @@ const { MongoClient } = require("mongodb");
 const ObjectId = require('mongodb').ObjectId;
 const Razorpay = require("razorpay");
 require("dotenv").config();
+const sha256 = require("crypto-js/sha256");
+const crypto = require('crypto');
 
 app.use(cors());
 app.use(express.json());
@@ -31,6 +33,12 @@ async function run() {
         const rideCollection = database.collection("ride-collection");
 
 
+        // REVIEW POST API 
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviews.insertOne(review);
+            res.send(result)
+        })
         // GET ALL REVIEWS
         app.get("/reviews", async (req, res) => {
             const cursor = reviews.find({});
@@ -149,6 +157,12 @@ async function run() {
             const ride = await rideCollection.findOne(query);
             res.json(ride)
         })
+        // POST A SINGLE RIDE
+        app.post('/rides', async (req, res) => {
+            const rideDetails = req.body;
+            const result = await rideCollection.insertOne(rideDetails);
+            res.send(result)
+        })
         // UPDATE SINGLE RIDE DETAILS
         app.put('/rides/:id', async (req, res) => {
             const id = req.params.id;
@@ -173,51 +187,48 @@ async function run() {
             const result = await rideCollection.deleteOne(query)
             res.json(result)
         })
-        app.get("/order", (req, res) => {
+        // RAZOR PAY BY CHANDAN
+        app.post("/createOrder", async (req, res) => {
+            // STEP 1:
+            const orderDetails = req.body;
+            const { amount, currency, receipt, notes } = await orderDetails;
+            console.log(orderDetails)
+
             try {
-                const options = {
-                    amount: 10 * 100,
-                    currency: "USD",
-                    receipt: "receipt#11",
-                    payment_capture: 0,
-                };
-                instance.orders.create(options, async function (err, order) {
+                // STEP 2:    
+                instance.orders.create({ amount, currency, receipt, notes }, async function (err, order) {
+                    //STEP 3 & 4: 
                     if (err) {
                         return res.status(500).json({
                             message: "Something Went Wrong",
                         });
                     }
+                    console.log(order)
                     return res.status(200).json(order);
-                });
+                }
+                )
             } catch (err) {
                 return res.status(500).json({
                     message: "Something Went Wrong",
                 });
-            }
-        });
-
-        app.post("/capture/:paymentId", (req, res) => {
-            try {
-                return request(
-                    {
-                        method: "POST",
-                        url: `https://${process.env.RAZOR_PAY_KEY_ID}:${process.env.RAZOR_PAY_KEY_SECRET}@api.razorpay.com/v1/payments/${req.params.paymentId}/capture`,
-                    },
-                    async function (err, response, body) {
-                        if (err) {
-                            return res.status(500).json({
-                                message: "Something Went Wrong",
-                            });
-                        }
-                        return res.status(200).json(body);
-                    }
-                );
-            } catch (err) {
-                return res.status(500).json({
-                    message: "Something Went Wrong",
-                })
             }
         })
+        // VERIFY ORDER CREATED BY CHANDAN
+        app.post('/verifyOrder', (req, res) => {
+            const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+            console.log("sign", razorpay_signature)
+            const key_secret = "hit20H8dtUjpDkawNZFXoDuE";
+            let hmac = crypto.createHmac('sha256', key_secret);
+            hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
+            const generated_signature = hmac.digest('hex');
+
+            if (razorpay_signature === generated_signature) {
+                res.json({ success: true, message: "Payment has been verified" })
+            }
+            else
+                res.json({ success: false, message: "Payment verification failed" })
+        });
+
     } catch {
         // await client.close();
     }
