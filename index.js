@@ -130,6 +130,18 @@ async function run() {
             const result = await bookingCollection.deleteOne(query)
             res.json(result)
         })
+        // ADD INOVICE
+        app.patch('/bookingUpdate/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateBooking = req.body;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: updateBooking
+            };
+            const result = await bookingCollection.updateOne(filter, updateDoc, options)
+            res.json(result)
+        })
         // UPDATE SINGLE BOOKING DETAILS API
         app.patch('/booking/:id', async (req, res) => {
             const id = req.params.id;
