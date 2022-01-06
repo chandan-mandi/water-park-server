@@ -36,7 +36,7 @@ async function run() {
         // GET ALL IMAGES
         app.get("/imageGallery", async(req,res) => {
             const cursor = imageCollection.find({});
-            const result = cursor.toArray();
+            const result = await cursor.toArray();
             res.json(result);
         })
         // REVIEW POST API 
