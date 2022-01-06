@@ -31,8 +31,14 @@ async function run() {
         const eventPackages = database.collection("event-packages");
         const bookingCollection = database.collection("booking-collection");
         const rideCollection = database.collection("ride-collection");
+        const imageCollection = database.collection("image-collection");
 
-
+        // GET ALL IMAGES
+        app.get("/imageGallery", async(req,res) => {
+            const cursor = imageCollection.find({});
+            const result = cursor.toArray();
+            res.json(result);
+        })
         // REVIEW POST API 
         app.post('/reviews', async (req, res) => {
             const review = req.body;
@@ -205,7 +211,6 @@ async function run() {
             const orderDetails = req.body;
             const { amount, currency, receipt, notes } = await orderDetails;
             console.log(orderDetails)
-
             try {
                 // STEP 2:    
                 instance.orders.create({ amount, currency, receipt, notes }, async function (err, order) {
