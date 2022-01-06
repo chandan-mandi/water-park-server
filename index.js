@@ -108,6 +108,18 @@ async function run() {
       const result = await cursor.toArray();
       res.json(result);
     })
+     // ADD INOVICE
+    app.patch('/bookingUpdate/:id', async (req, res) => {
+        const id = req.params.id;
+        const updateBooking = req.body;
+        const filter = { _id: ObjectId(id) }
+        const options = { upsert: true };
+        const updateDoc = {
+            $set: updateBooking
+        };
+        const result = await bookingCollection.updateOne(filter, updateDoc, options)
+        res.json(result)
+    })
     // GET MY BOOKING
     app.get("/booking/:email", async (req, res) => {
       const email = req.params.email;
