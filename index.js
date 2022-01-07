@@ -109,6 +109,18 @@ async function run() {
       const result = await cursor.toArray();
       res.json(result);
     })
+     // ADD INOVICE
+    app.patch('/bookingUpdate/:id', async (req, res) => {
+        const id = req.params.id;
+        const updateBooking = req.body;
+        const filter = { _id: ObjectId(id) }
+        const options = { upsert: true };
+        const updateDoc = {
+            $set: updateBooking
+        };
+        const result = await bookingCollection.updateOne(filter, updateDoc, options)
+        res.json(result)
+    })
     // GET MY BOOKING
     app.get("/booking/:email", async (req, res) => {
       const email = req.params.email;
@@ -226,10 +238,10 @@ async function run() {
       }
     })
     // VERIFY ORDER CREATED BY CHANDAN
-    app.post('/verifyOrder', (req, res) => {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-      console.log("sign", razorpay_signature)
-      const key_secret = "hit20H8dtUjpDkawNZFXoDuE";
+    app.post('/verifyOrder', async(req, res) => {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.body;
+      console.log("sign", req.body)
+      const key_secret = process.env.RAZOR_PAY_KEY_SECRET;
       let hmac = crypto.createHmac('sha256', key_secret);
       hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
       const generated_signature = hmac.digest('hex');
