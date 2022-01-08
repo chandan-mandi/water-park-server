@@ -221,16 +221,10 @@ async function run() {
       res.json(result)
     })
     // GET ALL RIDE COLLECTION 
-    app.get("/rides", verifyToken, async (req, res) => {
-      const requester = req.decodedUserEmail;
-      if (requester) {
-        const requesterAccount = await usersCollection.findOne({ email: requester })
-        if (requesterAccount.role === 'admin') {
-          const cursor = rideCollection.find({});
-          const result = await cursor.toArray();
-          res.json(result);
-        }
-      }
+    app.get("/rides", async (req, res) => {
+      const cursor = rideCollection.find({});
+      const result = await cursor.toArray();
+      res.json(result);
     })
     // GET SINGLE RIDE FROM RIDECOLLECTION
     app.get('/rides/:id', async (req, res) => {
