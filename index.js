@@ -95,15 +95,24 @@ async function run() {
       res.json(result);
     });
     // ADMIN ROLE FINDER from USERSCOLLECTION
-    app.get('/users/:email', async (req, res) => {
+    app.get('/users/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
-      const query = { email: email }
-      const user = await usersCollection.findOne(query)
-      let isAdmin = false;
-      if (user?.role === 'admin') {
-        isAdmin = true;
+      const requester = req.decodedUserEmail;
+      if (requester) {
+        const requesterAccount = await usersCollection.findOne({ email: requester })
+        if (requesterAccount.role === 'admin') {
+          const query = { email: email }
+          const user = await usersCollection.findOne(query)
+          let isAdmin = false;
+          if (user?.role === 'admin') {
+            isAdmin = true;
+          }
+          res.json({ admin: isAdmin });
+        }
       }
-      res.json({ admin: isAdmin });
+      else {
+        res.status(401).json({message: 'bad request'})
+      }
     })
     // ADD ADMIN ROLE 
     app.put('/addAdmin', verifyToken, async (req, res) => {
