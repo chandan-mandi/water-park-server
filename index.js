@@ -83,6 +83,14 @@ async function run() {
       }
       res.json({ admin: isAdmin });
     })
+    // ADD ADMIN ROLE 
+    app.post("/users/admin", async(req,res) => {
+      const user = req.body;
+      const filter = {email : user.email};
+      const updateDoc = { $set : {role: 'admin'}}
+      const result = await usersCollection.updateOne(filter,updateDoc);
+      res.json(result);
+    })
     // EVENT PACKAGES GET
     app.get("/packages", async (req, res) => {
       const cursor = eventPackages.find({});
