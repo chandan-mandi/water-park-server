@@ -84,12 +84,12 @@ async function run() {
       res.json({ admin: isAdmin });
     })
     // ADD ADMIN ROLE 
-    app.post("/users/admin", async(req,res) => {
+    app.post("/users/admin", async (req, res) => {
       const user = req.body;
-      const filter = {email : user.email};
-      const updateDoc = { $set : {role: 'admin'}}
-      const result = await usersCollection.updateOne(filter,updateDoc);
-      res.json(result);
+      const filter = { email: user.email }
+      const updateDoc = { $set: { role: 'admin' } }
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.json(result)
     })
     // EVENT PACKAGES GET
     app.get("/packages", async (req, res) => {
@@ -116,17 +116,17 @@ async function run() {
       const result = await cursor.toArray();
       res.json(result);
     })
-     // ADD INOVICE
+    // ADD INOVICE
     app.patch('/bookingUpdate/:id', async (req, res) => {
-        const id = req.params.id;
-        const updateBooking = req.body;
-        const filter = { _id: ObjectId(id) }
-        const options = { upsert: true };
-        const updateDoc = {
-            $set: updateBooking
-        };
-        const result = await bookingCollection.updateOne(filter, updateDoc, options)
-        res.json(result)
+      const id = req.params.id;
+      const updateBooking = req.body;
+      const filter = { _id: ObjectId(id) }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: updateBooking
+      };
+      const result = await bookingCollection.updateOne(filter, updateDoc, options)
+      res.json(result)
     })
     // GET MY BOOKING
     app.get("/booking/:email", async (req, res) => {
@@ -245,7 +245,7 @@ async function run() {
       }
     })
     // VERIFY ORDER CREATED BY CHANDAN
-    app.post('/verifyOrder', async(req, res) => {
+    app.post('/verifyOrder', async (req, res) => {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.body;
       console.log("sign", req.body)
       const key_secret = process.env.RAZOR_PAY_KEY_SECRET;
