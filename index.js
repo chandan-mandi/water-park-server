@@ -5,12 +5,21 @@ const port = process.env.PORT || 5000;
 const { MongoClient } = require("mongodb");
 const ObjectId = require('mongodb').ObjectId;
 const Razorpay = require("razorpay");
+const admin = require("firebase-admin");
 require("dotenv").config();
 const sha256 = require("crypto-js/sha256");
 const crypto = require('crypto');
 
 app.use(cors());
 app.use(express.json());
+
+
+const serviceAccount = JSON.parse(`${process.env.FIREBASE_SERVICE_ACCOUNT}`)
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.islim.mongodb.net/water-kingdom?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -19,6 +28,19 @@ const instance = new Razorpay({
   key_id: `${process.env.RAZOR_PAY_KEY_ID}`,
   key_secret: `${process.env.RAZOR_PAY_KEY_SECRET}`,
 });
+
+async function verifyToken(req, res, next) {
+  if (req.headers.authorization.startsWith('Bearer ')) {
+    const idToken = req.headers.authorization.split('Bearer ')[1]
+    try {
+      const decodedUser = await admin.auth().verifyIdToken(idToken)
+      req.decodedUserEmail = decodedUser.email
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  next()
+}
 
 async function run() {
   try {
@@ -74,15 +96,44 @@ async function run() {
       res.json(result);
     });
     // ADMIN ROLE FINDER from USERSCOLLECTION
-    app.get('/users/:email', async (req, res) => {
+    app.get('/users/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
-      const query = { email: email }
-      const user = await usersCollection.findOne(query)
-      let isAdmin = false;
-      if (user?.role === 'admin') {
-        isAdmin = true;
+      const requester = req.decodedUserEmail;
+      if (requester) {
+        const requesterAccount = await usersCollection.findOne({ email: requester })
+        if (requesterAccount.role === 'admin') {
+          const query = { email: email }
+          const user = await usersCollection.findOne(query)
+          let isAdmin = false;
+          if (user?.role === 'admin') {
+            isAdmin = true;
+          }
+          res.json({ admin: isAdmin });
+        }
       }
-      res.json({ admin: isAdmin });
+      else {
+        res.status(401).json({message: 'bad request'})
+      }
+    })
+    // ADD ADMIN ROLE 
+    app.put('/addAdmin', verifyToken, async (req, res) => {
+      const user = req.body;
+      console.log('user', user)
+      const requester = req.decodedUserEmail;
+      if (requester) {
+        const requesterAccount = await usersCollection.findOne({ email: requester })
+        console.log(requester)
+        if (requesterAccount.role === 'admin') {
+          const filter = { email: user.email }
+          const updateDoc = { $set: { role: 'admin' } }
+          const result = await usersCollection.updateOne(filter, updateDoc);
+          res.json(result)
+        }
+      }
+      else {
+        res.status(403).json({ message: 'You are Not Authorized' })
+      }
+
     })
     // EVENT PACKAGES GET
     app.get("/packages", async (req, res) => {
@@ -104,29 +155,40 @@ async function run() {
       res.json(result);
     })
     // GET ALL BOOKING
-    app.get("/booking", async (req, res) => {
-      const cursor = bookingCollection.find({});
-      const result = await cursor.toArray();
-      res.json(result);
+    app.get("/booking", verifyToken, async (req, res) => {
+      const requester = req.decodedUserEmail;
+      if (requester) {
+        const requesterAccount = await usersCollection.findOne({ email: requester })
+        if (requesterAccount.role === 'admin') {
+          const cursor = bookingCollection.find({});
+          const result = await cursor.toArray();
+          res.json(result);
+        }
+      }
     })
-     // ADD INOVICE
+    // ADD INOVICE
     app.patch('/bookingUpdate/:id', async (req, res) => {
-        const id = req.params.id;
-        const updateBooking = req.body;
-        const filter = { _id: ObjectId(id) }
-        const options = { upsert: true };
-        const updateDoc = {
-            $set: updateBooking
-        };
-        const result = await bookingCollection.updateOne(filter, updateDoc, options)
-        res.json(result)
+      const id = req.params.id;
+      const updateBooking = req.body;
+      const filter = { _id: ObjectId(id) }
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: updateBooking
+      };
+      const result = await bookingCollection.updateOne(filter, updateDoc, options)
+      res.json(result)
     })
     // GET MY BOOKING
-    app.get("/booking/:email", async (req, res) => {
+    app.get("/booking/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      const query = { email: email };
-      const myBooking = await bookingCollection.find(query).toArray();
-      res.json(myBooking);
+      if (req.decodedUserEmail === email) {
+        const query = { email: email };
+        const myBooking = await bookingCollection.find(query).toArray();
+        res.json(myBooking);
+      }
+      else {
+        res.status(401).json({ message: 'User Not Authorized' });
+      }
     });
     // GET Blogs API
     app.get('/blogs', async (req, res) => {
@@ -238,7 +300,7 @@ async function run() {
       }
     })
     // VERIFY ORDER CREATED BY CHANDAN
-    app.post('/verifyOrder', async(req, res) => {
+    app.post('/verifyOrder', async (req, res) => {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.body;
       console.log("sign", req.body)
       const key_secret = process.env.RAZOR_PAY_KEY_SECRET;
