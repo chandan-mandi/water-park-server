@@ -13,16 +13,11 @@ const crypto = require('crypto');
 app.use(cors());
 app.use(express.json());
 
-
-// const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-
+if (!admin) 
+  throw new Error('The FIREBASE_SERVICE_ACCOUNT_CREDS environment variable was not found!');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
 admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL, 
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
-  }),
-  databaseURL: process.env.FIREBASE_DATABASE_URL
+  credential: admin.credential.cert(serviceAccount)
 });
 
 
@@ -35,7 +30,7 @@ const instance = new Razorpay({
 });
 
 async function verifyToken(req, res, next) {
-  if (req.headers.authorization.startsWith('Bearer ')) {
+  if (req?.headers?.authorization?.startsWith('Bearer ')) {
     const idToken = req.headers.authorization.split('Bearer ')[1]
     try {
       const decodedUser = await admin.auth().verifyIdToken(idToken)
@@ -103,6 +98,7 @@ async function run() {
     app.get('/users/:email', verifyToken, async (req, res) => {
       const email = req.params.email;
       const requester = req.decodedUserEmail;
+      console.log('requ', requester)
       if (requester) {
         const requesterAccount = await usersCollection.findOne({ email: requester })
         if (requesterAccount.role === 'admin') {
@@ -162,6 +158,7 @@ async function run() {
     app.get("/booking", verifyToken, async (req, res) => {
       const requester = req.decodedUserEmail;
       if (requester) {
+        console.log('underall booking', requester)
         const requesterAccount = await usersCollection.findOne({ email: requester })
         if (requesterAccount.role === 'admin') {
           const cursor = bookingCollection.find({});
