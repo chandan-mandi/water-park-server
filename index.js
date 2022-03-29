@@ -9,6 +9,7 @@ const admin = require("firebase-admin");
 require("dotenv").config();
 const sha256 = require("crypto-js/sha256");
 const crypto = require('crypto');
+const axios = require('axios');
 
 app.use(cors());
 app.use(express.json());
@@ -55,6 +56,57 @@ async function run() {
     const blogsCollection = database.collection("blogs");
     const rideCollection = database.collection("ride-collection");
 
+    /* app.get('/todos', async(req, res) => {
+     
+      async function getUser() {
+        try {
+          const response = await axios.get('https://jsonplaceholder.typicode.com/todos');
+
+          return(response.data);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      const todosCollection = await getUser();
+      const result = todosCollection.map(todo => {
+        delete todo.userId
+        return todo;
+      })
+      res.json(result);
+    }) */
+
+    // GET API
+    app.get('/products', async (req, res) => {
+      const category = req.query.category
+      const search = req.query.search;
+      if (category) {
+          cursor = blogsCollection.find({ category: category });
+      }
+      else {
+          cursor = blogsCollection.find({});
+      }
+      const page = req.query.page;
+      const size = parseInt(req.query.size);
+      let products;
+      const count = await cursor.count();
+
+      if (page) {
+          products = await cursor.skip(page * size).limit(size).toArray();
+      }
+      else {
+          products = await cursor.toArray();
+      }
+      if (search) {
+          const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
+          res.send(searchResult)
+      }
+      next();
+      res.send({
+          count,
+          products
+      });
+  })
+
     // GET ALL REVIEWS
     app.get("/reviews", async (req, res) => {
       const cursor = reviews.find({});
@@ -73,11 +125,29 @@ async function run() {
       const result = await packageBooking.insertOne(packageDetails);
       res.json(result);
     })
+    // ADD NEW USER SIGN IN DETAILS 
+    app.post('/signUp', async(req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.json(result);
+    })
+    app.post('/login', async(req,res) => {
+      const email = req.body.email;
+      const password = req.body.password;
+      console.log(password);
+      const result = await usersCollection.findOne({email : email})
+      if(result.password === password){
+        res.json(result)
+      } else {
+        res.json({message: "Pasword does not match"});
+      }
+      console.log(result);
+    })
     // GET Users API
     app.get('/users', async (req, res) => {
       const cursor = usersCollection.find({});
       const users = await cursor.toArray();
-      res.json(users);
+      res.json(users);  
     });
     //add users in database
     app.post('/users', async (req, res) => {
@@ -95,13 +165,10 @@ async function run() {
       res.json(result);
     });
     // ADMIN ROLE FINDER from USERSCOLLECTION
-    app.get('/users/:email', verifyToken, async (req, res) => {
+    app.get('/users/:email',  async (req, res) => {
       const email = req.params.email;
-      const requester = req.decodedUserEmail;
-      console.log('requ', requester)
-      if (requester) {
-        const requesterAccount = await usersCollection.findOne({ email: requester })
-        if (requesterAccount.role === 'admin') {
+        const requesterAccount = await usersCollection.findOne({ email: email })
+        if (requesterAccount?.role === 'admin') {
           const query = { email: email }
           const user = await usersCollection.findOne(query)
           let isAdmin = false;
@@ -110,10 +177,10 @@ async function run() {
           }
           res.json({ admin: isAdmin });
         }
-      }
-      else {
-        res.status(401).json({message: 'bad request'})
-      }
+        else {
+          res.json({message: 'bad request! '})
+        }
+      
     })
     // ADD ADMIN ROLE 
     app.put('/addAdmin', verifyToken, async (req, res) => {
@@ -180,16 +247,12 @@ async function run() {
       res.json(result)
     })
     // GET MY BOOKING
-    app.get("/booking/:email", verifyToken, async (req, res) => {
+    app.get("/booking/:email",  async (req, res) => {
       const email = req.params.email;
-      if (req.decodedUserEmail === email) {
         const query = { email: email };
         const myBooking = await bookingCollection.find(query).toArray();
         res.json(myBooking);
-      }
-      else {
-        res.status(401).json({ message: 'User Not Authorized' });
-      }
+      
     });
     // GET Blogs API
     app.get('/blogs', async (req, res) => {
