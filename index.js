@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5050;
 const { MongoClient } = require("mongodb");
 const ObjectId = require('mongodb').ObjectId;
 const Razorpay = require("razorpay");
@@ -100,7 +100,7 @@ async function run() {
           const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
           res.send(searchResult)
       }
-      next();
+      // next();
       res.send({
           count,
           products
