@@ -101,7 +101,7 @@ async function run() {
           const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
           res.send(searchResult)
       }
-      next();
+      // next();
       res.send({
           count,
           products
