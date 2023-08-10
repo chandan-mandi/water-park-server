@@ -13,6 +13,7 @@ const axios = require('axios');
 
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
 
 if (!admin) 
   throw new Error('The FIREBASE_SERVICE_ACCOUNT_CREDS environment variable was not found!');
@@ -30,18 +31,18 @@ const instance = new Razorpay({
   key_secret: `${process.env.RAZOR_PAY_KEY_SECRET}`,
 });
 
-async function verifyToken(req, res, next) {
-  if (req?.headers?.authorization?.startsWith('Bearer ')) {
-    const idToken = req.headers.authorization.split('Bearer ')[1]
-    try {
-      const decodedUser = await admin.auth().verifyIdToken(idToken)
-      req.decodedUserEmail = decodedUser.email
-    } catch (error) {
-      console.log(error)
-    }
-  }
-  next()
-}
+// async function verifyToken(req, res, next) {
+//   if (req?.headers?.authorization?.startsWith('Bearer ')) {
+//     const idToken = req.headers.authorization.split('Bearer ')[1]
+//     try {
+//       const decodedUser = await admin.auth().verifyIdToken(idToken)
+//       req.decodedUserEmail = decodedUser.email
+//     } catch (error) {
+//       console.log(error)
+//     }
+//   }
+//   next()
+// }
 
 async function run() {
   try {
@@ -100,7 +101,7 @@ async function run() {
           const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
           res.send(searchResult)
       }
-      // next();
+      next();
       res.send({
           count,
           products
