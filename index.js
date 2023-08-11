@@ -76,36 +76,36 @@ async function run() {
     }) */
 
     // GET API
-    app.get('/products', async (req, res) => {
-      const category = req.query.category
-      const search = req.query.search;
-      if (category) {
-          cursor = blogsCollection.find({ category: category });
-      }
-      else {
-          cursor = blogsCollection.find({});
-      }
-      const page = req.query.page;
-      const size = parseInt(req.query.size);
-      let products;
-      const count = await cursor.count();
+  //   app.get('/products', async (req, res) => {
+  //     const category = req.query.category
+  //     const search = req.query.search;
+  //     if (category) {
+  //         cursor = blogsCollection.find({ category: category });
+  //     }
+  //     else {
+  //         cursor = blogsCollection.find({});
+  //     }
+  //     const page = req.query.page;
+  //     const size = parseInt(req.query.size);
+  //     let products;
+  //     const count = await cursor.count();
 
-      if (page) {
-          products = await cursor.skip(page * size).limit(size).toArray();
-      }
-      else {
-          products = await cursor.toArray();
-      }
-      if (search) {
-          const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
-          res.send(searchResult)
-      }
-      next();
-      res.send({
-          count,
-          products
-      });
-  })
+  //     if (page) {
+  //         products = await cursor.skip(page * size).limit(size).toArray();
+  //     }
+  //     else {
+  //         products = await cursor.toArray();
+  //     }
+  //     if (search) {
+  //         const searchResult = products.filter(product => product.title.toLowerCase().includes(search))
+  //         res.send(searchResult)
+  //     }
+  //     next();
+  //     res.send({
+  //         count,
+  //         products
+  //     });
+  // })
 
     // GET ALL REVIEWS
     app.get("/reviews", async (req, res) => {
